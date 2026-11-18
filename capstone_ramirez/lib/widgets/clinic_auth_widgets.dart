@@ -12,6 +12,8 @@ class ClinicAuthBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (_, constraints) {
+        final logoSize = constraints.maxWidth < 360 ? 56.0 : 76.0;
+
         return Stack(
           fit: StackFit.expand,
           children: [
@@ -22,8 +24,19 @@ class ClinicAuthBackground extends StatelessWidget {
             ),
             Positioned(
               top: constraints.maxHeight * 0.14,
+              left: 14,
+              child: Image.asset(
+                'assets/cit logo.png',
+                width: logoSize,
+                height: logoSize,
+                fit: BoxFit.contain,
+                semanticLabel: 'CIT logo',
+              ),
+            ),
+            Positioned(
+              top: constraints.maxHeight * 0.14,
               right: 14,
-              left: constraints.maxWidth * 0.16,
+              left: logoSize + 30,
               child: Text(
                 headline,
                 textAlign: TextAlign.right,
@@ -84,3 +97,33 @@ class ClinicAuthInput extends StatelessWidget {
   }
 }
 
+class ClinicAuthButton extends StatelessWidget {
+  const ClinicAuthButton({
+    required this.label,
+    required this.onPressed,
+    super.key,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 42,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: clinicMaroon,
+          side: const BorderSide(color: clinicOrange, width: 1.5),
+          shape: const StadiumBorder(),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
+        ),
+        child: Text(label),
+      ),
+    );
+  }
+}

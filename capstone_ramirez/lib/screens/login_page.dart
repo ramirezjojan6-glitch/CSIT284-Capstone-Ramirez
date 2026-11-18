@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/clinic_auth_widgets.dart';
+import 'studentlog_screen.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -63,13 +64,25 @@ class LoginPage extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 16),
                                 const ClinicAuthInput(
-                                  hintText: 'Phone number / email',
-                                  keyboardType: TextInputType.emailAddress,
+                                  hintText: 'ID Number',
+                                  keyboardType: TextInputType.number,
                                 ),
                                 const SizedBox(height: 8),
                                 const ClinicAuthInput(
                                   hintText: 'Password',
                                   obscureText: true,
+                                ),
+                                const SizedBox(height: 10),
+                                ClinicAuthButton(
+                                  label: 'Log in',
+                                  onPressed: () {
+                                    Navigator.of(context).pushReplacement(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) =>
+                                            const StudentLogScreen(),
+                                      ),
+                                    );
+                                  },
                                 ),
                                 const SizedBox(height: 12),
                                 const Text(
