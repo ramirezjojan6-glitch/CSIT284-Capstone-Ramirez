@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:capstone_ramirez/main.dart';
+import 'package:capstone_ramirez/widgets/clinic_auth_widgets.dart';
 
 void main() {
   testWidgets('shows the clinic login screen', (WidgetTester tester) async {
@@ -31,6 +32,51 @@ void main() {
     await tester.tap(find.widgetWithText(OutlinedButton, 'Log in'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Student Log Screen'), findsOneWidget);
+    expect(find.text('WILD CLINIC'), findsOneWidget);
+    expect(find.text('Welcome, Student!'), findsOneWidget);
+    final header = find.ancestor(
+      of: find.text('Welcome, Student!'),
+      matching: find.byType(Container),
+    );
+    expect(
+      tester.getSize(header).width,
+      tester.getSize(find.byType(Scaffold)).width,
+    );
+    expect(tester.getTopLeft(header).dy, 0);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Container &&
+            widget.decoration ==
+                const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<Text>(find.text('Welcome, Student!')).style?.fontSize,
+      28,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Opacity &&
+            widget.opacity == 0.2 &&
+            widget.child is Image &&
+            (widget.child as Image).image ==
+                const AssetImage('assets/clinic.webp'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is ColoredBox &&
+            widget.color == clinicMaroon.withValues(alpha: 0.10),
+      ),
+      findsOneWidget,
+    );
   });
 }

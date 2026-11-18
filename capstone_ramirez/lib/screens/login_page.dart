@@ -24,7 +24,7 @@ class LoginPage extends StatelessWidget {
                 right: 0,
                 height: screenHeight * 0.57,
                 child: const ClinicAuthBackground(
-                  headline: 'FEELING UNWELL?\nGET IN LINE.',
+                  headline: 'UP FOR A\nCHECK UP?',
                 ),
               ),
               Positioned(
