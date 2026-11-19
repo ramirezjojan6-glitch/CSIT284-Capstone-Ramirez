@@ -9,9 +9,43 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:capstone_ramirez/main.dart';
+import 'package:capstone_ramirez/screens/login_page.dart';
 import 'package:capstone_ramirez/widgets/clinic_auth_widgets.dart';
 
 void main() {
+  testWidgets('login page uses a 30% background image', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: LoginPage()));
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Opacity &&
+            widget.opacity == 0.3 &&
+            widget.child is Image &&
+            (widget.child as Image).image ==
+                const AssetImage('assets/clinic.webp'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is ColoredBox &&
+            widget.color == clinicMaroon.withValues(alpha: 0.10),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('UP FOR A\nCHECK UP?'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.text('UP FOR A\nCHECK UP?')).style?.fontSize,
+      36,
+    );
+    expect(find.text('Log in'), findsNWidgets(2));
+    expect(find.byType(TextField), findsNWidgets(2));
+  });
+
   testWidgets('shows the clinic login screen', (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());
 
@@ -75,6 +109,62 @@ void main() {
         (widget) =>
             widget is ColoredBox &&
             widget.color == clinicMaroon.withValues(alpha: 0.10),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Student Form:'), findsOneWidget);
+    expect(find.text('What do you feel right now?'), findsOneWidget);
+    expect(find.text('Clinic check-in'), findsOneWidget);
+    expect(find.text('Details (optional)'), findsOneWidget);
+    expect(find.text('Recorded automatically when you join'), findsOneWidget);
+    expect(find.text("You haven't joined the queue yet."), findsOneWidget);
+    expect(find.text('Status:'), findsNothing);
+    expect(find.text('--- in line'), findsNothing);
+
+    final joinButton = find.text('Join Queue');
+    final joinButtonWidget = find.widgetWithText(ElevatedButton, 'Join Queue');
+    expect(tester.getSize(joinButtonWidget), const Size(200, 48));
+    expect(tester.widget<TextField>(find.byType(TextField)).maxLines, 3);
+    await tester.ensureVisible(joinButton);
+    await tester.tap(joinButton);
+    await tester.pumpAndSettle();
+    expect(find.text('Please select a symptom.'), findsOneWidget);
+    expect(find.text("You haven't joined the queue yet."), findsOneWidget);
+    expect(find.text('Status:'), findsNothing);
+
+    final symptomDropdown = find.byType(DropdownButtonFormField<String>);
+    final symptomDropdownWidget = tester
+        .widget<DropdownButtonFormField<String>>(symptomDropdown);
+    expect(symptomDropdownWidget.decoration.fillColor, const Color(0xFFFFF8EC));
+    expect(symptomDropdownWidget.decoration.contentPadding?.vertical, 32);
+    await tester.ensureVisible(symptomDropdown);
+    await tester.tap(symptomDropdown);
+    await tester.pumpAndSettle();
+    expect(find.text('Fever'), findsOneWidget);
+    expect(find.text('Other'), findsOneWidget);
+    await tester.tap(find.text('Other').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Other symptom'), findsOneWidget);
+
+    final otherSymptomField = find.byType(TextFormField).first;
+    await tester.ensureVisible(otherSymptomField);
+    await tester.enterText(otherSymptomField, 'Rash');
+    await tester.ensureVisible(joinButton);
+    await tester.tap(joinButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('#4 in line'), findsOneWidget);
+    expect(find.text('Waiting...'), findsOneWidget);
+    expect(find.text('Status:'), findsOneWidget);
+    expect(find.text('Checked in'), findsNothing);
+    expect(find.text('Joined Queue'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Text &&
+            RegExp(
+              r'^\d{1,2}/\d{1,2}/\d{4} \d{2}:\d{2} (AM|PM)$',
+            ).hasMatch(widget.data ?? ''),
       ),
       findsOneWidget,
     );

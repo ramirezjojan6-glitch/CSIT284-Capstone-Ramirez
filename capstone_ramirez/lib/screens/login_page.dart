@@ -9,7 +9,6 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: clinicMaroon,
       body: LayoutBuilder(
         builder: (context, constraints) {
           final screenHeight = constraints.maxHeight;
@@ -24,7 +23,7 @@ class LoginPage extends StatelessWidget {
                 right: 0,
                 height: screenHeight * 0.57,
                 child: const ClinicAuthBackground(
-                  headline: 'UP FOR A\nCHECK UP?',
+                  headline: 'FEELING WORSE?\nCHECK IT UP',
                 ),
               ),
               Positioned(
@@ -84,15 +83,7 @@ class LoginPage extends StatelessWidget {
                                     );
                                   },
                                 ),
-                                const SizedBox(height: 12),
-                                const Text(
-                                  'New here? Sign up',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
+                                
                               ],
                             ),
                           ),

@@ -3,6 +3,29 @@ import 'package:flutter/material.dart';
 const clinicMaroon = Color(0xFF7A3330);
 const clinicOrange = Color(0xFFF4A340);
 
+class ClinicBackground extends StatelessWidget {
+  const ClinicBackground({this.imageOpacity = 0.2, super.key});
+
+  final double imageOpacity;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Opacity(
+          opacity: imageOpacity,
+          child: const Image(
+            image: AssetImage('assets/clinic.webp'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        ColoredBox(color: clinicMaroon.withValues(alpha: 0.10)),
+      ],
+    );
+  }
+}
+
 class ClinicAuthBackground extends StatelessWidget {
   const ClinicAuthBackground({required this.headline, super.key});
 
@@ -17,11 +40,7 @@ class ClinicAuthBackground extends StatelessWidget {
         return Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(
-              'assets/clinic.webp',
-              fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
-            ),
+            const ClinicBackground(imageOpacity: 0.3),
             Positioned(
               top: constraints.maxHeight * 0.14,
               left: 14,
@@ -42,7 +61,7 @@ class ClinicAuthBackground extends StatelessWidget {
                 textAlign: TextAlign.right,
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: constraints.maxWidth < 360 ? 24 : 30,
+                  fontSize: constraints.maxWidth < 360 ? 30 : 36,
                   height: 1.08,
                   fontWeight: FontWeight.w800,
                 ),
