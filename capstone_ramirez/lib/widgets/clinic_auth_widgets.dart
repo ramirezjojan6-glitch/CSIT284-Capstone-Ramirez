@@ -79,25 +79,43 @@ class ClinicAuthInput extends StatelessWidget {
     required this.hintText,
     this.keyboardType,
     this.obscureText = false,
+    this.controller,
+    this.suffixIcon,
+    this.enabled = true,
+    this.fieldKey,
     super.key,
   });
 
   final String hintText;
   final TextInputType? keyboardType;
   final bool obscureText;
+  final TextEditingController? controller;
+  final Widget? suffixIcon;
+  final bool enabled;
+  final Key? fieldKey;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 42,
+      height: 44,
       child: TextField(
+        key: fieldKey,
+        controller: controller,
         keyboardType: keyboardType,
         obscureText: obscureText,
+        enabled: enabled,
         textAlign: TextAlign.center,
         cursorColor: clinicMaroon,
         style: const TextStyle(color: clinicMaroon, fontSize: 13),
         decoration: InputDecoration(
           hintText: hintText,
+          suffixIcon: suffixIcon,
+          suffixIconConstraints: const BoxConstraints(
+            minWidth: 40,
+            maxWidth: 44,
+            minHeight: 36,
+            maxHeight: 40,
+          ),
           hintStyle: const TextStyle(color: clinicMaroon, fontSize: 13),
           filled: true,
           fillColor: Colors.white,
@@ -120,11 +138,13 @@ class ClinicAuthButton extends StatelessWidget {
   const ClinicAuthButton({
     required this.label,
     required this.onPressed,
+    this.isLoading = false,
     super.key,
   });
 
   final String label;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -141,7 +161,16 @@ class ClinicAuthButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w400),
         ),
-        child: Text(label),
+        child: isLoading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  color: clinicMaroon,
+                  strokeWidth: 2,
+                ),
+              )
+            : Text(label),
       ),
     );
   }

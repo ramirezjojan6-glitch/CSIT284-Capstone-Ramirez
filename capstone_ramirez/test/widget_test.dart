@@ -1,172 +1,162 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:capstone_ramirez/authentication/auth_service.dart';
+import 'package:capstone_ramirez/login/login_screen.dart';
 import 'package:capstone_ramirez/main.dart';
-import 'package:capstone_ramirez/screens/login_page.dart';
-import 'package:capstone_ramirez/widgets/clinic_auth_widgets.dart';
+import 'package:capstone_ramirez/models/user_model.dart';
+import 'package:capstone_ramirez/nurse/nurse_dashboard.dart';
+import 'package:capstone_ramirez/student/student_dashboard.dart';
 
 void main() {
-  testWidgets('login page uses a 30% background image', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(const MaterialApp(home: LoginPage()));
-
-    expect(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is Opacity &&
-            widget.opacity == 0.3 &&
-            widget.child is Image &&
-            (widget.child as Image).image ==
-                const AssetImage('assets/clinic.webp'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is ColoredBox &&
-            widget.color == clinicMaroon.withValues(alpha: 0.10),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('UP FOR A\nCHECK UP?'), findsOneWidget);
-    expect(
-      tester.widget<Text>(find.text('UP FOR A\nCHECK UP?')).style?.fontSize,
-      36,
-    );
-    expect(find.text('Log in'), findsNWidgets(2));
-    expect(find.byType(TextField), findsNWidgets(2));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
   });
 
-  testWidgets('shows the clinic login screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const MyApp());
+  test('user role is serialized and restored from a map', () {
+    final map = {'id': 'N1001', 'name': 'Demo Nurse', 'role': 'nurse'};
 
-    expect(find.text('FEELING UNWELL?\nGET IN LINE.'), findsOneWidget);
-    expect(find.text('Log in'), findsNWidgets(2));
-    expect(find.text('ID Number'), findsOneWidget);
-    expect(find.text('Password'), findsOneWidget);
-    expect(find.text('Continue with Facebook'), findsNothing);
-    expect(find.text('New here? Sign up'), findsOneWidget);
-    expect(find.byType(TextField), findsNWidgets(2));
+    expect(UserModel.fromMap(map).role, UserRole.nurse);
+    expect(
+      const UserModel(
+        id: 'S1001',
+        name: 'Demo Student',
+        role: UserRole.student,
+      ).toMap()['role'],
+      'student',
+    );
   });
 
-  testWidgets('login button opens the student log screen', (
-    WidgetTester tester,
-  ) async {
-    await tester.pumpWidget(const MyApp());
+  test('student two can log in and only its ID is persisted', () async {
+    final user = await AuthService().login('S1002', 'student456');
+    final preferences = await SharedPreferences.getInstance();
+
+    expect(user.role, UserRole.student);
+    expect(preferences.getString('clinic_user_id'), 'S1002');
+    expect(preferences.getString('password'), isNull);
+    expect(await AuthService().getCurrentUser(), user);
+  });
+
+  testWidgets('requires non-empty credentials', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
 
     await tester.tap(find.widgetWithText(OutlinedButton, 'Log in'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    expect(find.text('Enter your ID number and password.'), findsOneWidget);
 
-    expect(find.text('WILD CLINIC'), findsOneWidget);
-    expect(find.text('Welcome, Student!'), findsOneWidget);
-    final header = find.ancestor(
-      of: find.text('Welcome, Student!'),
-      matching: find.byType(Container),
-    );
-    expect(
-      tester.getSize(header).width,
-      tester.getSize(find.byType(Scaffold)).width,
-    );
-    expect(tester.getTopLeft(header).dy, 0);
-    expect(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is Container &&
-            widget.decoration ==
-                const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      tester.widget<Text>(find.text('Welcome, Student!')).style?.fontSize,
-      28,
-    );
-    expect(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is Opacity &&
-            widget.opacity == 0.2 &&
-            widget.child is Image &&
-            (widget.child as Image).image ==
-                const AssetImage('assets/clinic.webp'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is ColoredBox &&
-            widget.color == clinicMaroon.withValues(alpha: 0.10),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Student Form:'), findsOneWidget);
-    expect(find.text('What do you feel right now?'), findsOneWidget);
-    expect(find.text('Clinic check-in'), findsOneWidget);
-    expect(find.text('Details (optional)'), findsOneWidget);
-    expect(find.text('Recorded automatically when you join'), findsOneWidget);
-    expect(find.text("You haven't joined the queue yet."), findsOneWidget);
-    expect(find.text('Status:'), findsNothing);
-    expect(find.text('--- in line'), findsNothing);
-
-    final joinButton = find.text('Join Queue');
-    final joinButtonWidget = find.widgetWithText(ElevatedButton, 'Join Queue');
-    expect(tester.getSize(joinButtonWidget), const Size(200, 48));
-    expect(tester.widget<TextField>(find.byType(TextField)).maxLines, 3);
-    await tester.ensureVisible(joinButton);
-    await tester.tap(joinButton);
-    await tester.pumpAndSettle();
-    expect(find.text('Please select a symptom.'), findsOneWidget);
-    expect(find.text("You haven't joined the queue yet."), findsOneWidget);
-    expect(find.text('Status:'), findsNothing);
-
-    final symptomDropdown = find.byType(DropdownButtonFormField<String>);
-    final symptomDropdownWidget = tester
-        .widget<DropdownButtonFormField<String>>(symptomDropdown);
-    expect(symptomDropdownWidget.decoration.fillColor, const Color(0xFFFFF8EC));
-    expect(symptomDropdownWidget.decoration.contentPadding?.vertical, 32);
-    await tester.ensureVisible(symptomDropdown);
-    await tester.tap(symptomDropdown);
-    await tester.pumpAndSettle();
-    expect(find.text('Fever'), findsOneWidget);
-    expect(find.text('Other'), findsOneWidget);
-    await tester.tap(find.text('Other').last);
-    await tester.pumpAndSettle();
-    expect(find.text('Other symptom'), findsOneWidget);
-
-    final otherSymptomField = find.byType(TextFormField).first;
-    await tester.ensureVisible(otherSymptomField);
-    await tester.enterText(otherSymptomField, 'Rash');
-    await tester.ensureVisible(joinButton);
-    await tester.tap(joinButton);
-    await tester.pumpAndSettle();
-
-    expect(find.text('#4 in line'), findsOneWidget);
-    expect(find.text('Waiting...'), findsOneWidget);
-    expect(find.text('Status:'), findsOneWidget);
-    expect(find.text('Checked in'), findsNothing);
-    expect(find.text('Joined Queue'), findsOneWidget);
-    expect(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is Text &&
-            RegExp(
-              r'^\d{1,2}/\d{1,2}/\d{4} \d{2}:\d{2} (AM|PM)$',
-            ).hasMatch(widget.data ?? ''),
-      ),
-      findsOneWidget,
-    );
+    await tester.enterText(find.byKey(const Key('id-number-field')), 'S1001');
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Log in'));
+    await tester.pump();
+    expect(find.text('Enter your password.'), findsOneWidget);
   });
+
+  testWidgets('wrong password and unknown ID use the same error', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
+    await _fillLogin(tester, id: 'S1001', password: 'wrong-password');
+
+    expect(find.text('Incorrect ID number or password.'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('id-number-field')), 'UNKNOWN');
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Log in'));
+    await tester.pumpAndSettle();
+    expect(find.text('Incorrect ID number or password.'), findsOneWidget);
+  });
+
+  testWidgets('student login routes using the stored student role', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
+    await _fillLogin(tester, id: 'S1001', password: 'student123');
+
+    expect(find.byType(StudentDashboard), findsOneWidget);
+    expect(find.text('Welcome, Student!'), findsOneWidget);
+    expect(find.text('Student Form:'), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(StudentDashboard), findsOneWidget);
+  });
+
+  testWidgets('nurse login opens the Visits, Queue, and Profile tabs', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
+    await _fillLogin(tester, id: 'N1001', password: 'nurse123');
+
+    expect(find.byType(NurseDashboard), findsOneWidget);
+    expect(find.text('No visits yet'), findsOneWidget);
+    await tester.tap(find.text('Queue'));
+    await tester.pumpAndSettle();
+    expect(find.text('The queue is empty'), findsOneWidget);
+
+    await tester.tap(find.text('Profile / Logout'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nurse profile'), findsOneWidget);
+    expect(find.byKey(const Key('nurse-logout-button')), findsOneWidget);
+  });
+
+  testWidgets('restores a saved session by the stored account role', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({'clinic_user_id': 'N1001'});
+
+    await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NurseDashboard), findsOneWidget);
+    expect(find.text('Visits').first, findsOneWidget);
+  });
+
+  testWidgets('student dashboard rejects a nurse session', (tester) async {
+    SharedPreferences.setMockInitialValues({'clinic_user_id': 'N1001'});
+
+    await tester.pumpWidget(const MaterialApp(home: StudentDashboard()));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(find.byType(StudentDashboard), findsNothing);
+  });
+
+  testWidgets('nurse dashboard rejects a student session', (tester) async {
+    SharedPreferences.setMockInitialValues({'clinic_user_id': 'S1001'});
+
+    await tester.pumpWidget(const MaterialApp(home: NurseDashboard()));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(find.byType(NurseDashboard), findsNothing);
+  });
+
+  testWidgets('logout clears the session and leaves login as the root', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
+    await _fillLogin(tester, id: 'S1001', password: 'student123');
+
+    await tester.tap(find.byKey(const Key('student-logout-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(await AuthService().restoreSession(), isNull);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(LoginScreen), findsOneWidget);
+  });
+}
+
+Future<void> _fillLogin(
+  WidgetTester tester, {
+  required String id,
+  required String password,
+}) async {
+  await tester.enterText(find.byKey(const Key('id-number-field')), id);
+  await tester.enterText(find.byKey(const Key('password-field')), password);
+  await tester.tap(find.widgetWithText(OutlinedButton, 'Log in'));
+  await tester.pumpAndSettle();
 }

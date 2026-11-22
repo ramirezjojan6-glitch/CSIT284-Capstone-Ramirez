@@ -3,18 +3,21 @@ import 'package:flutter/material.dart';
 import 'clinic_auth_widgets.dart';
 
 class StudentLogHeader extends StatelessWidget {
-  const StudentLogHeader({required this.topInset, super.key});
+  const StudentLogHeader({
+    required this.topInset,
+    required this.onLogout,
+    super.key,
+  });
 
   final double topInset;
+  final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: clinicMaroon,
-        borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(14),
-        ),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
         border: const Border(
           bottom: BorderSide(color: clinicOrange, width: 1.5),
         ),
@@ -56,6 +59,13 @@ class StudentLogHeader extends StatelessWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
+              ),
+              const Spacer(),
+              IconButton(
+                key: const Key('student-logout-button'),
+                tooltip: 'Log out',
+                onPressed: onLogout,
+                icon: const Icon(Icons.logout, color: Colors.white),
               ),
             ],
           ),
