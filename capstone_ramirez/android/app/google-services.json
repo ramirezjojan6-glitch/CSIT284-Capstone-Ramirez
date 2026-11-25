@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "168452947762",
+    "project_id": "clinic-log-visit",
+    "storage_bucket": "clinic-log-visit.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:168452947762:android:b66a73fea846f15630e12b",
+        "android_client_info": {
+          "package_name": "com.example.capstone_ramirez"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpJdyM4-ZT2UMZ05vXkzoDwRAQ5jaTvnA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

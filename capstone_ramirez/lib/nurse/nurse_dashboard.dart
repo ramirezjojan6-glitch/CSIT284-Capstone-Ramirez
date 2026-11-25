@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import '../authentication/auth_service.dart';
 import '../login/login_screen.dart';
 import '../models/user_model.dart';
+import '../repositories/visit_repository.dart';
 import '../widgets/clinic_auth_widgets.dart';
+import '../widgets/visit_queue_list.dart';
 
 class NurseDashboard extends StatefulWidget {
-  const NurseDashboard({super.key});
+  const NurseDashboard({required this.visitRepository, super.key});
+
+  final VisitRepository visitRepository;
 
   @override
   State<NurseDashboard> createState() => _NurseDashboardState();
@@ -103,15 +107,13 @@ class _NurseDashboardState extends State<NurseDashboard> {
 
   Widget _selectedPage() {
     return switch (_selectedIndex) {
-      0 => const _EmptyState(
-        icon: Icons.medical_services_outlined,
-        title: 'No visits yet',
-        message: 'Submitted student visits will appear here.',
+      0 => VisitQueueList(
+        repository: widget.visitRepository,
+        waitingOnly: false,
       ),
-      1 => const _EmptyState(
-        icon: Icons.people_outline,
-        title: 'The queue is empty',
-        message: 'Waiting students and their symptoms will appear here.',
+      1 => VisitQueueList(
+        repository: widget.visitRepository,
+        waitingOnly: true,
       ),
       _ => _profilePage(),
     };
@@ -173,7 +175,10 @@ class _NurseDashboardState extends State<NurseDashboard> {
 
       if (user == null) {
         Navigator.of(context).pushAndRemoveUntil<void>(
-          MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                LoginScreen(visitRepository: widget.visitRepository),
+          ),
           (_) => false,
         );
         return;
@@ -194,7 +199,9 @@ class _NurseDashboardState extends State<NurseDashboard> {
       await _authService.logout();
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil<void>(
-        MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+        MaterialPageRoute<void>(
+          builder: (_) => LoginScreen(visitRepository: widget.visitRepository),
+        ),
         (_) => false,
       );
     } catch (_) {
@@ -255,56 +262,6 @@ class _NurseHeader extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.icon,
-    required this.title,
-    required this.message,
-  });
-
-  final IconData icon;
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Card(
-        margin: const EdgeInsets.all(24),
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          side: const BorderSide(color: clinicOrange, width: 1.5),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: clinicMaroon, size: 48),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  color: clinicMaroon,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.black87),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

@@ -1,30 +1,38 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'authentication/auth_service.dart';
 import 'login/login_screen.dart';
 import 'models/user_model.dart';
 import 'nurse/nurse_dashboard.dart';
+import 'repositories/visit_repository.dart';
 import 'student/student_dashboard.dart';
 import 'widgets/clinic_auth_widgets.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp(visitRepository: VisitRepository()));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({required this.visitRepository, super.key});
+
+  final VisitRepository visitRepository;
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: SessionGate(),
+      home: SessionGate(visitRepository: visitRepository),
     );
   }
 }
 
 class SessionGate extends StatefulWidget {
-  const SessionGate({super.key});
+  const SessionGate({required this.visitRepository, super.key});
+
+  final VisitRepository visitRepository;
 
   @override
   State<SessionGate> createState() => _SessionGateState();
@@ -55,12 +63,12 @@ class _SessionGateState extends State<SessionGate> {
 
         final user = snapshot.data;
         if (user == null) {
-          return const LoginScreen();
+          return LoginScreen(visitRepository: widget.visitRepository);
         }
 
         return user.role == UserRole.student
-            ? const StudentDashboard()
-            : const NurseDashboard();
+            ? StudentDashboard(visitRepository: widget.visitRepository)
+            : NurseDashboard(visitRepository: widget.visitRepository);
       },
     );
   }

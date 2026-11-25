@@ -1,27 +1,36 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 import '../models/dummy_data.dart';
+import '../models/user_model.dart';
+import '../models/visit_model.dart';
+import '../repositories/visit_repository.dart';
 import 'clinic_auth_widgets.dart';
 
 class StudentQueueForm extends StatefulWidget {
-  const StudentQueueForm({super.key});
+  const StudentQueueForm({
+    required this.repository,
+    required this.student,
+    super.key,
+  });
+
+  final VisitRepository repository;
+  final UserModel student;
 
   @override
   State<StudentQueueForm> createState() => _StudentQueueFormState();
 }
 
 class _StudentQueueFormState extends State<StudentQueueForm> {
-  static int _nextQueuePosition = dummyQueueEntries.length + 1;
-
   final _formKey = GlobalKey<FormState>();
   final _otherSymptomController = TextEditingController();
   final _detailsController = TextEditingController();
 
   String? _selectedSymptom;
-  DateTime? _checkInTime;
-  int? _queuePosition;
+  VisitModel? _visit;
+  bool _isSubmitting = false;
 
-  bool get _hasJoined => _queuePosition != null;
+  bool get _hasJoined => _visit != null;
 
   @override
   void dispose() {
@@ -101,9 +110,9 @@ class _StudentQueueFormState extends State<StudentQueueForm> {
                                 ),
                               ),
                               Text(
-                                _checkInTime == null
+                                _visit == null
                                     ? 'Recorded automatically when you join'
-                                    : _formatTimestamp(_checkInTime!),
+                                    : _formatTimestamp(_visit!.createdAt),
                                 style: const TextStyle(
                                   color: Colors.black54,
                                   fontSize: 13,
@@ -190,7 +199,9 @@ class _StudentQueueFormState extends State<StudentQueueForm> {
                     child: SizedBox(
                       width: 200,
                       child: ElevatedButton(
-                        onPressed: _hasJoined ? null : _joinQueue,
+                        onPressed: _hasJoined || _isSubmitting
+                            ? null
+                            : _joinQueue,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: clinicMaroon,
                           foregroundColor: Colors.white,
@@ -209,7 +220,18 @@ class _StudentQueueFormState extends State<StudentQueueForm> {
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        child: Text(_hasJoined ? 'Joined Queue' : 'Join Queue'),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                _hasJoined ? 'Joined Queue' : 'Join Queue',
+                              ),
                       ),
                     ),
                   ),
@@ -294,9 +316,7 @@ class _StudentQueueFormState extends State<StudentQueueForm> {
             children: [
               Expanded(
                 child: Text(
-                  _queuePosition == null
-                      ? '--- in line'
-                      : '#$_queuePosition in line',
+                  'You are in the queue',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -305,7 +325,7 @@ class _StudentQueueFormState extends State<StudentQueueForm> {
                 ),
               ),
               Text(
-                'Waiting...',
+                _visit!.status.label,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -319,16 +339,46 @@ class _StudentQueueFormState extends State<StudentQueueForm> {
     );
   }
 
-  void _joinQueue() {
+  Future<void> _joinQueue() async {
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
 
     FocusScope.of(context).unfocus();
-    setState(() {
-      _queuePosition = _nextQueuePosition++;
-      _checkInTime = DateTime.now();
-    });
+    setState(() => _isSubmitting = true);
+
+    final otherSymptom = _selectedSymptom == 'Other'
+        ? _otherSymptomController.text.trim()
+        : '';
+    final details = [
+      if (otherSymptom.isNotEmpty) 'Other symptom: $otherSymptom',
+      if (_detailsController.text.trim().isNotEmpty)
+        _detailsController.text.trim(),
+    ].join('\n');
+
+    try {
+      final visit = await widget.repository.create(
+        studentId: widget.student.id,
+        studentName: widget.student.name,
+        symptom: _selectedSymptom!,
+        details: details,
+      );
+      if (!mounted) return;
+      setState(() => _visit = visit);
+    } on FirebaseException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.message ?? 'Could not join the clinic queue. Please retry.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   String _formatTimestamp(DateTime timestamp) {

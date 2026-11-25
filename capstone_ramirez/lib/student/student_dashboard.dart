@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import '../authentication/auth_service.dart';
 import '../login/login_screen.dart';
 import '../models/user_model.dart';
+import '../repositories/visit_repository.dart';
 import '../widgets/clinic_auth_widgets.dart';
 import '../widgets/student_log_header.dart';
 import '../widgets/student_queue_form.dart';
 
 class StudentDashboard extends StatefulWidget {
-  const StudentDashboard({super.key});
+  const StudentDashboard({required this.visitRepository, super.key});
+
+  final VisitRepository visitRepository;
 
   @override
   State<StudentDashboard> createState() => _StudentDashboardState();
@@ -18,6 +21,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
   final _authService = AuthService();
   bool _isCheckingAccess = true;
   String? _accessError;
+  late UserModel _student;
 
   @override
   void initState() {
@@ -70,7 +74,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 StudentLogHeader(topInset: topInset, onLogout: _logout),
-                const Expanded(child: StudentQueueForm()),
+                Expanded(
+                  child: StudentQueueForm(
+                    repository: widget.visitRepository,
+                    student: _student,
+                  ),
+                ),
               ],
             ),
           ),
@@ -93,12 +102,16 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
       if (user == null) {
         Navigator.of(context).pushAndRemoveUntil<void>(
-          MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                LoginScreen(visitRepository: widget.visitRepository),
+          ),
           (_) => false,
         );
         return;
       }
 
+      _student = user;
       setState(() => _isCheckingAccess = false);
     } catch (_) {
       if (!mounted) return;
@@ -114,7 +127,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
       await _authService.logout();
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil<void>(
-        MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+        MaterialPageRoute<void>(
+          builder: (_) => LoginScreen(visitRepository: widget.visitRepository),
+        ),
         (_) => false,
       );
     } catch (_) {

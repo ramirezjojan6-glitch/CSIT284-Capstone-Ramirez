@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:capstone_ramirez/authentication/auth_service.dart';
 import 'package:capstone_ramirez/login/login_screen.dart';
 import 'package:capstone_ramirez/main.dart';
 import 'package:capstone_ramirez/models/user_model.dart';
+import 'package:capstone_ramirez/models/visit_model.dart';
 import 'package:capstone_ramirez/nurse/nurse_dashboard.dart';
+import 'package:capstone_ramirez/repositories/visit_repository.dart';
 import 'package:capstone_ramirez/student/student_dashboard.dart';
 
 void main() {
+  late VisitRepository visitRepository;
+
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    visitRepository = VisitRepository(firestore: FakeFirebaseFirestore());
   });
 
   test('user role is serialized and restored from a map', () {
@@ -52,7 +58,9 @@ void main() {
   });
 
   testWidgets('requires non-empty credentials', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
+    await tester.pumpWidget(
+      MaterialApp(home: LoginScreen(visitRepository: visitRepository)),
+    );
 
     await tester.tap(find.byKey(const Key('login-submit-button')));
     await tester.pump();
@@ -76,7 +84,9 @@ void main() {
   testWidgets('wrong password and unknown ID use the same error', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
+    await tester.pumpWidget(
+      MaterialApp(home: LoginScreen(visitRepository: visitRepository)),
+    );
     await _fillLogin(tester, id: 'S1001', password: 'wrong-password');
 
     expect(find.text('Incorrect ID number or password.'), findsOneWidget);
@@ -89,7 +99,7 @@ void main() {
   testWidgets('student login routes using the stored student role', (
     tester,
   ) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(MyApp(visitRepository: visitRepository));
     await tester.pumpAndSettle();
     await _fillLogin(tester, id: 'S1001', password: 'student123');
 
@@ -102,10 +112,47 @@ void main() {
     expect(find.byType(StudentDashboard), findsOneWidget);
   });
 
+  testWidgets('student visit is saved and nurse can mark it attended', (
+    tester,
+  ) async {
+    await tester.pumpWidget(MyApp(visitRepository: visitRepository));
+    await tester.pumpAndSettle();
+    await _fillLogin(tester, id: 'S1001', password: 'student123');
+
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Headache').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Join Queue'));
+    await tester.tap(find.text('Join Queue'));
+    await tester.pumpAndSettle();
+
+    final visit = (await visitRepository.getAll()).single;
+    expect(visit.studentId, 'S1001');
+    expect(visit.symptom, 'Headache');
+    expect(visit.status.name, 'waiting');
+
+    await tester.tap(find.byKey(const Key('student-logout-button')));
+    await tester.pumpAndSettle();
+    await _fillLogin(tester, id: 'N1001', password: 'nurse123');
+
+    expect(find.text('Demo Student'), findsOneWidget);
+    await tester.tap(find.text('Queue'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(Key('visit-status-${visit.id}')));
+    await tester.pumpAndSettle();
+
+    expect(
+      (await visitRepository.getById(visit.id))?.status,
+      VisitStatus.attended,
+    );
+    expect(find.text('The queue is empty'), findsOneWidget);
+  });
+
   testWidgets('nurse login opens the Visits, Queue, and Profile tabs', (
     tester,
   ) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(MyApp(visitRepository: visitRepository));
     await tester.pumpAndSettle();
     await _fillLogin(tester, id: 'N1001', password: 'nurse123');
 
@@ -126,7 +173,7 @@ void main() {
   ) async {
     SharedPreferences.setMockInitialValues({'clinic_user_id': 'N1001'});
 
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(MyApp(visitRepository: visitRepository));
     await tester.pumpAndSettle();
 
     expect(find.byType(NurseDashboard), findsOneWidget);
@@ -136,7 +183,11 @@ void main() {
   testWidgets('student dashboard rejects a nurse session', (tester) async {
     SharedPreferences.setMockInitialValues({'clinic_user_id': 'N1001'});
 
-    await tester.pumpWidget(const MaterialApp(home: StudentDashboard()));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StudentDashboard(visitRepository: visitRepository),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byType(LoginScreen), findsOneWidget);
@@ -146,7 +197,9 @@ void main() {
   testWidgets('nurse dashboard rejects a student session', (tester) async {
     SharedPreferences.setMockInitialValues({'clinic_user_id': 'S1001'});
 
-    await tester.pumpWidget(const MaterialApp(home: NurseDashboard()));
+    await tester.pumpWidget(
+      MaterialApp(home: NurseDashboard(visitRepository: visitRepository)),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byType(LoginScreen), findsOneWidget);
@@ -156,7 +209,7 @@ void main() {
   testWidgets('logout clears the session and leaves login as the root', (
     tester,
   ) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(MyApp(visitRepository: visitRepository));
     await tester.pumpAndSettle();
     await _fillLogin(tester, id: 'S1001', password: 'student123');
 

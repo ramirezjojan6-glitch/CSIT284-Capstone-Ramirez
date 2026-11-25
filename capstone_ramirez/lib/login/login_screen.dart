@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import '../authentication/auth_service.dart';
 import '../models/user_model.dart';
 import '../nurse/nurse_dashboard.dart';
+import '../repositories/visit_repository.dart';
 import '../student/student_dashboard.dart';
 import '../widgets/clinic_auth_widgets.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({required this.visitRepository, super.key});
+
+  final VisitRepository visitRepository;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -238,8 +241,8 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.of(context).pushAndRemoveUntil<void>(
         MaterialPageRoute<void>(
           builder: (_) => user.role == UserRole.student
-              ? const StudentDashboard()
-              : const NurseDashboard(),
+              ? StudentDashboard(visitRepository: widget.visitRepository)
+              : NurseDashboard(visitRepository: widget.visitRepository),
         ),
         (_) => false,
       );
