@@ -38,15 +38,37 @@ void main() {
     expect(await AuthService().getCurrentUser(), user);
   });
 
+  test('login rejects a role that does not match the account', () async {
+    await expectLater(
+      AuthService().login('N1001', 'nurse123', requiredRole: UserRole.student),
+      throwsA(
+        isA<AuthException>().having(
+          (error) => error.message,
+          'message',
+          'The selected role does not match this account.',
+        ),
+      ),
+    );
+  });
+
   testWidgets('requires non-empty credentials', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
 
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Log in'));
+    await tester.tap(find.byKey(const Key('login-submit-button')));
+    await tester.pump();
+    expect(
+      find.text('Select whether you are a Student or Nurse.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('student-role-option')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('login-submit-button')));
     await tester.pump();
     expect(find.text('Enter your ID number and password.'), findsOneWidget);
 
     await tester.enterText(find.byKey(const Key('id-number-field')), 'S1001');
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Log in'));
+    await tester.tap(find.byKey(const Key('login-submit-button')));
     await tester.pump();
     expect(find.text('Enter your password.'), findsOneWidget);
   });
@@ -59,7 +81,7 @@ void main() {
 
     expect(find.text('Incorrect ID number or password.'), findsOneWidget);
     await tester.enterText(find.byKey(const Key('id-number-field')), 'UNKNOWN');
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Log in'));
+    await tester.tap(find.byKey(const Key('login-submit-button')));
     await tester.pumpAndSettle();
     expect(find.text('Incorrect ID number or password.'), findsOneWidget);
   });
@@ -157,6 +179,11 @@ Future<void> _fillLogin(
 }) async {
   await tester.enterText(find.byKey(const Key('id-number-field')), id);
   await tester.enterText(find.byKey(const Key('password-field')), password);
-  await tester.tap(find.widgetWithText(OutlinedButton, 'Log in'));
+  final roleKey = id.startsWith('N')
+      ? const Key('nurse-role-option')
+      : const Key('student-role-option');
+  await tester.tap(find.byKey(roleKey));
+  await tester.pump();
+  await tester.tap(find.byKey(const Key('login-submit-button')));
   await tester.pumpAndSettle();
 }

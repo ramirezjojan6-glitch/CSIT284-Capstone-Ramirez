@@ -21,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
   bool _isSubmitting = false;
   String? _message;
+  UserRole? _selectedRole;
 
   @override
   void dispose() {
@@ -35,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final screenHeight = constraints.maxHeight;
-          final panelHeight = screenHeight * 0.62;
+          final panelHeight = screenHeight * 0.68;
 
           return Stack(
             fit: StackFit.expand,
@@ -85,6 +86,49 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 16),
+                                Text(
+                                  'Choose your account type',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.95),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _RoleCard(
+                                        key: const Key('student-role-option'),
+                                        role: UserRole.student,
+                                        icon: Icons.school_outlined,
+                                        isSelected:
+                                            _selectedRole == UserRole.student,
+                                        enabled: !_isSubmitting,
+                                        onTap: () => setState(() {
+                                          _selectedRole = UserRole.student;
+                                          _message = null;
+                                        }),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: _RoleCard(
+                                        key: const Key('nurse-role-option'),
+                                        role: UserRole.nurse,
+                                        icon: Icons.medical_services_outlined,
+                                        isSelected:
+                                            _selectedRole == UserRole.nurse,
+                                        enabled: !_isSubmitting,
+                                        onTap: () => setState(() {
+                                          _selectedRole = UserRole.nurse;
+                                          _message = null;
+                                        }),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
                                 ClinicAuthInput(
                                   fieldKey: const Key('id-number-field'),
                                   controller: _idController,
@@ -136,7 +180,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ],
                                 const SizedBox(height: 10),
                                 ClinicAuthButton(
-                                  label: 'Log in',
+                                  key: const Key('login-submit-button'),
+                                  label: _selectedRole == null
+                                      ? 'Log in'
+                                      : 'Log in as ${_selectedRole!.label}',
                                   isLoading: _isSubmitting,
                                   onPressed: _isSubmitting ? null : _submit,
                                 ),
@@ -160,7 +207,9 @@ class _LoginScreenState extends State<LoginScreen> {
     FocusScope.of(context).unfocus();
     final id = _idController.text.trim();
     final password = _passwordController.text;
-    final message = id.isEmpty && password.isEmpty
+    final message = _selectedRole == null
+        ? 'Select whether you are a Student or Nurse.'
+        : id.isEmpty && password.isEmpty
         ? 'Enter your ID number and password.'
         : id.isEmpty
         ? 'Enter your ID number.'
@@ -179,7 +228,11 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final user = await _authService.login(id, password);
+      final user = await _authService.login(
+        id,
+        password,
+        requiredRole: _selectedRole,
+      );
       if (!mounted) return;
 
       Navigator.of(context).pushAndRemoveUntil<void>(
@@ -201,5 +254,52 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _isSubmitting = false);
       }
     }
+  }
+}
+
+class _RoleCard extends StatelessWidget {
+  const _RoleCard({
+    required this.role,
+    required this.icon,
+    required this.isSelected,
+    required this.enabled,
+    required this.onTap,
+    super.key,
+  });
+
+  final UserRole role;
+  final IconData icon;
+  final bool isSelected;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 58,
+      child: OutlinedButton(
+        onPressed: enabled ? onTap : null,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: isSelected ? clinicMaroon : Colors.white,
+          foregroundColor: isSelected ? Colors.white : clinicMaroon,
+          side: BorderSide(color: clinicOrange, width: isSelected ? 2.5 : 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20),
+            const SizedBox(height: 3),
+            Text(
+              role.label,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

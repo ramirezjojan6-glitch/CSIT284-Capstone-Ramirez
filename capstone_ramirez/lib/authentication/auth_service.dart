@@ -15,15 +15,25 @@ class AuthException implements Exception {
 class AuthService {
   static const _userIdKey = 'clinic_user_id';
   static const _invalidCredentialsMessage = 'Incorrect ID number or password.';
+  static const _roleMismatchMessage =
+      'The selected role does not match this account.';
   static UserModel? _currentUser;
 
-  Future<UserModel> login(String id, String password) async {
+  Future<UserModel> login(
+    String id,
+    String password, {
+    UserRole? requiredRole,
+  }) async {
     await Future<void>.delayed(const Duration(seconds: 1));
     final normalizedId = id.trim();
     final record = _findRecord(normalizedId);
 
     if (record == null || record.password != password) {
       throw const AuthException(_invalidCredentialsMessage);
+    }
+
+    if (requiredRole != null && record.role != requiredRole) {
+      throw const AuthException(_roleMismatchMessage);
     }
 
     final user = record.toUserModel();
