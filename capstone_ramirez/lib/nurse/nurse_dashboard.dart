@@ -230,11 +230,28 @@ class _NurseHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       child: Row(
         children: [
-          Image.asset(
-            'assets/cit logo.png',
+          SizedBox(
             width: 44,
             height: 44,
-            semanticLabel: 'CIT logo',
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Image.asset(
+                  'assets/cit logo.png',
+                  width: 44,
+                  height: 44,
+                  semanticLabel: 'CIT logo',
+                ),
+              ],
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(

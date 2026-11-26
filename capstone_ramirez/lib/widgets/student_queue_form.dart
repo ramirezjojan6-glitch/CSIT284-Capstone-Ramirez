@@ -26,11 +26,26 @@ class _StudentQueueFormState extends State<StudentQueueForm> {
   final _otherSymptomController = TextEditingController();
   final _detailsController = TextEditingController();
 
+  late Stream<List<VisitModel>> _queueVisits;
   String? _selectedSymptom;
   VisitModel? _visit;
   bool _isSubmitting = false;
 
   bool get _hasJoined => _visit != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _queueVisits = widget.repository.watchAll();
+  }
+
+  @override
+  void didUpdateWidget(covariant StudentQueueForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.repository != widget.repository) {
+      _queueVisits = widget.repository.watchAll();
+    }
+  }
 
   @override
   void dispose() {
@@ -292,50 +307,100 @@ class _StudentQueueFormState extends State<StudentQueueForm> {
   }
 
   Widget _buildStatusCard() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-      decoration: BoxDecoration(
-        color: clinicMaroon,
-        border: Border.all(color: clinicOrange, width: 1.5),
-        borderRadius: BorderRadius.circular(9),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Status:',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
+    return StreamBuilder<List<VisitModel>>(
+      stream: _queueVisits,
+      builder: (context, snapshot) {
+        String queueMessage;
+        String statusMessage = _visit!.status.label;
+
+        if (snapshot.hasError) {
+          queueMessage = 'Unable to load your queue number.';
+        } else if (!snapshot.hasData) {
+          queueMessage = 'Loading your queue number...';
+        } else {
+          final visits = snapshot.data!;
+          final visitIndex = visits.indexWhere(
+            (visit) => visit.id == _visit!.id,
+          );
+          if (visitIndex == -1) {
+            queueMessage = 'Your queue entry is no longer available.';
+          } else {
+            final currentVisit = visits[visitIndex];
+            final today = DateTime.now();
+            statusMessage = currentVisit.status.label;
+            if (currentVisit.status == VisitStatus.attended) {
+              queueMessage = 'Attended';
+              statusMessage = '';
+            } else if (!isSameLocalDate(
+              currentVisit.createdAt,
+              today,
+            )) {
+              queueMessage = 'This queue entry has expired.';
+            } else {
+              final waitingVisits = visits
+                  .where(
+                    (visit) =>
+                        visit.status == VisitStatus.waiting &&
+                        isSameLocalDate(visit.createdAt, today),
+                  )
+                  .toList(growable: false);
+              final queuePosition = waitingVisits.indexWhere(
+                (visit) => visit.id == currentVisit.id,
+              );
+              queueMessage = queuePosition == -1
+                  ? 'Queue position unavailable.'
+                  : 'Queue number: ${queuePosition + 1}';
+            }
+          }
+        }
+
+        return Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+          decoration: BoxDecoration(
+            color: clinicMaroon,
+            border: Border.all(color: clinicOrange, width: 1.5),
+            borderRadius: BorderRadius.circular(9),
           ),
-          const SizedBox(height: 6),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  'You are in the queue',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Text(
-                _visit!.status.label,
-                style: const TextStyle(
+              const Text(
+                'Status:',
+                style: TextStyle(
                   color: Colors.white,
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
               ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      queueMessage,
+                      key: const Key('student-queue-position'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  if (statusMessage.isNotEmpty)
+                    Text(
+                      statusMessage,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

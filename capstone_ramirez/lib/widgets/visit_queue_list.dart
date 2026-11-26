@@ -55,10 +55,13 @@ class _VisitQueueListState extends State<VisitQueueList> {
           );
         }
 
+        final today = DateTime.now();
         final visits = snapshot.data!
             .where(
               (visit) =>
-                  !widget.waitingOnly || visit.status == VisitStatus.waiting,
+                  !widget.waitingOnly ||
+                  (visit.status == VisitStatus.waiting &&
+                      isSameLocalDate(visit.createdAt, today)),
             )
             .toList(growable: false);
         if (visits.isEmpty) {

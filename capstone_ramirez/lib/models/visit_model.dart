@@ -9,6 +9,14 @@ extension VisitStatusLabel on VisitStatus {
   };
 }
 
+bool isSameLocalDate(DateTime first, DateTime second) {
+  final firstLocal = first.toLocal();
+  final secondLocal = second.toLocal();
+  return firstLocal.year == secondLocal.year &&
+      firstLocal.month == secondLocal.month &&
+      firstLocal.day == secondLocal.day;
+}
+
 class VisitModel {
   const VisitModel({
     required this.id,

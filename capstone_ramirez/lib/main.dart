@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'authentication/auth_service.dart';
@@ -11,7 +12,17 @@ import 'widgets/clinic_auth_widgets.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: kIsWeb
+        ? const FirebaseOptions(
+            apiKey: 'AIzaSyBpJdyM4-ZT2UMZ05vXkzoDwRAQ5jaTvnA',
+            appId: '1:168452947762:android:b66a73fea846f15630e12b',
+            messagingSenderId: '168452947762',
+            projectId: 'clinic-log-visit',
+            storageBucket: 'clinic-log-visit.firebasestorage.app',
+          )
+        : null,
+  );
   runApp(MyApp(visitRepository: VisitRepository()));
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,10 +15,12 @@ import 'package:capstone_ramirez/student/student_dashboard.dart';
 
 void main() {
   late VisitRepository visitRepository;
+  late FakeFirebaseFirestore firestore;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
-    visitRepository = VisitRepository(firestore: FakeFirebaseFirestore());
+    firestore = FakeFirebaseFirestore();
+    visitRepository = VisitRepository(firestore: firestore);
   });
 
   test('user role is serialized and restored from a map', () {
@@ -147,6 +150,89 @@ void main() {
       VisitStatus.attended,
     );
     expect(find.text('The queue is empty'), findsOneWidget);
+  });
+
+  testWidgets('student sees their live position in the waiting queue', (
+    tester,
+  ) async {
+    final earlierVisit = await visitRepository.create(
+      studentId: 'S1002',
+      studentName: 'Demo Student Two',
+      symptom: 'Fever',
+      details: '',
+    );
+
+    await tester.pumpWidget(MyApp(visitRepository: visitRepository));
+    await tester.pumpAndSettle();
+    await _fillLogin(tester, id: 'S1001', password: 'student123');
+
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Headache').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Join Queue'));
+    await tester.tap(find.text('Join Queue'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Queue number: 2'), findsOneWidget);
+
+    await visitRepository.update(
+      earlierVisit.copyWith(status: VisitStatus.attended),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Queue number: 1'), findsOneWidget);
+
+    final studentVisit = (await visitRepository.getAll()).last;
+    await visitRepository.update(
+      studentVisit.copyWith(status: VisitStatus.attended),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Attended'), findsOneWidget);
+  });
+
+  testWidgets('previous-day waiting visits do not affect today queue number', (
+    tester,
+  ) async {
+    final oldVisits = [
+      await visitRepository.create(
+        studentId: 'S1002',
+        studentName: 'Demo Student Two',
+        symptom: 'Fever',
+        details: '',
+      ),
+      await visitRepository.create(
+        studentId: 'S1003',
+        studentName: 'Another Student',
+        symptom: 'Cough',
+        details: '',
+      ),
+    ];
+    for (final visit in oldVisits) {
+      await firestore
+          .collection(VisitRepository.collectionName)
+          .doc(visit.id)
+          .update({
+            'createdAt': Timestamp.fromDate(
+              DateTime.now().subtract(const Duration(days: 1)).toUtc(),
+            ),
+          });
+    }
+
+    await tester.pumpWidget(MyApp(visitRepository: visitRepository));
+    await tester.pumpAndSettle();
+    await _fillLogin(tester, id: 'S1001', password: 'student123');
+
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Headache').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Join Queue'));
+    await tester.tap(find.text('Join Queue'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Queue number: 1'), findsOneWidget);
   });
 
   testWidgets('nurse login opens the Visits, Queue, and Profile tabs', (
